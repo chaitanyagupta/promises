@@ -15,11 +15,11 @@
          (lambda (values)
            (destructuring-bind ,(mapcar #'car bindings)
                values
-             ,@body))))
+             (pcl:progn ,@body)))))
 
 (defmacro pcl:let* (bindings &body body)
   (let ((reversed-bindings (reverse bindings))
-        (result `(progn ,@body)))
+        (result `(pcl:progn ,@body)))
     (dolist (binding reversed-bindings result)
       (setf result `(with-promised-values (,(car binding))
                         ,(cadr binding)
