@@ -7,4 +7,5 @@
                (:file "pcl")
                (:file "test")
                (:file "test1")
-               (:file "test2")))
+               (:file "test2")
+               (:file "test3")))

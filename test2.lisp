@@ -1,5 +1,8 @@
 (cl:defpackage #:promises-test2
-  (:use #:cl #:promises #:promises-test))
+  (:use #:cl #:promises #:promises-test)
+  (:export #:get-tweets-for
+           #:expand-url-using-twitter-api
+           #:http-get))
 
 (cl:in-package #:promises-test2)
 
