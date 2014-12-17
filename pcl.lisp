@@ -52,3 +52,31 @@
       (setf result `((with-promised-values (,(car binding))
                         ,(cadr binding)
                       ,@result))))))
+
+(defmacro pcl:handler-case (expression &rest clauses)
+  (let ((values (gensym "VALUES-"))
+        (clauses (mapcar (lambda (clause)
+                           (destructuring-bind (type (&rest vars) &body body)
+                               clause
+                             (append (list type vars) (pcl-prognate-body nil body))))
+                         clauses)))
+    `(flet ((handle-condition (c)
+              (typecase c
+                ,@(mapcar (lambda (clause)
+                            (destructuring-bind (type (&rest vars) &body body)
+                                clause
+                              (list type `((lambda (,@vars &rest ,values)
+                                             (declare (ignore ,values))
+                                             ,@body)
+                                           c))))
+                          clauses))))
+       (handler-case
+           (multiple-value-call
+               (lambda (&rest ,values)
+                 (if (promisep (first ,values))
+                     (then (first ,values)
+                           nil
+                           #'handle-condition)
+                     (values-list ,values)))
+             ,expression)
+         ,@clauses))))

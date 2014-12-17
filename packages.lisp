@@ -25,7 +25,8 @@
 (defpackage #:pcl
   (:export #:progn
            #:let
-           #:let*))
+           #:let*
+           #:handler-case))
 
 (defpackage #:pcl-impl
   (:use #:cl #:promises))
