@@ -11,7 +11,7 @@
                         ,result))))))
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
-  (defun pcl-prognate-body (documentationp body)
+  (defun prognate-body (documentationp body)
     (let ((declarations nil)
           (docstring nil)
           (forms nil))
@@ -43,11 +43,11 @@
          (lambda (values)
            (destructuring-bind ,(mapcar #'car bindings)
                values
-             ,@(pcl-prognate-body nil body)))))
+             ,@(prognate-body nil body)))))
 
 (defmacro pcl:let* (bindings &body body)
   (let ((reversed-bindings (reverse bindings))
-        (result (pcl-prognate-body nil body)))
+        (result (prognate-body nil body)))
     (dolist (binding reversed-bindings (first result))
       (setf result `((with-promised-values (,(car binding))
                         ,(cadr binding)
@@ -58,7 +58,7 @@
         (clauses (mapcar (lambda (clause)
                            (destructuring-bind (type (&rest vars) &body body)
                                clause
-                             (append (list type vars) (pcl-prognate-body nil body))))
+                             (append (list type vars) (prognate-body nil body))))
                          clauses)))
     `(flet ((handle-condition (c)
               (typecase c
