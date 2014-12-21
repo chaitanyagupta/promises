@@ -13,10 +13,12 @@
    ;; promise
    #:promise
    #:make-promise
+   #:promisep
    #:then
    #:fulfill
    #:reject
-   #:promisep
+   #:promise-values
+   #:promise-condition
    #:with-promised-values
    #:on-promises
    #:delayed-promise

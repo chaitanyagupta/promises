@@ -1,58 +1,82 @@
 (cl:in-package #:promises)
 
-(deftype promise-state ()
-  `(member :unfulfilled :fulfilled :rejected))
+(defclass thendler ()
+  ((promise :reader thendler-promise :initform (make-promise))
+   (fulfiller :reader thendler-fulfiller :initarg :fulfiller)
+   (rejecter :reader thendler-rejecter :initarg :rejecter)))
+
+(defun finish-thendler (thendler handler &rest values)
+  (let ((thendler-promise (thendler-promise thendler)))
+    (handler-case
+        (let* ((new-values (multiple-value-list (apply handler values)))
+               (first-new-value (first new-values)))
+          (if (promisep first-new-value)
+              (then first-new-value
+                    (lambda (&rest values)
+                      (apply #'fulfill thendler-promise values))
+                    (lambda (condition)
+                      (reject thendler-promise condition)))
+              (apply #'fulfill thendler-promise new-values)))
+      (condition (c)
+        (reject thendler-promise c)))))
+
+(defmethod fulfill ((thendler thendler) &rest values)
+  (let ((fulfiller (thendler-fulfiller thendler)))
+    (if (null fulfiller)
+        (apply #'fulfill (thendler-promise thendler) values)
+        (apply #'finish-thendler thendler fulfiller values))))
+
+(defmethod reject ((thendler thendler) condition)
+  (let ((rejecter (thendler-rejecter thendler)))
+    (if (null rejecter)
+        (funcall #'reject (thendler-promise thendler) condition)
+        (finish-thendler thendler rejecter condition))))
 
 (defclass promise ()
-  ((state :accessor state :initform :unfulfilled :type promise-state)
-   (new-promise :accessor new-promise :initform nil)
-   (fulfilled-handler :accessor fulfilled-handler :initform nil)
-   (error-handler :accessor error-handler :initform nil)))
+  ((values :accessor promise-values :initform nil :type (or null list))
+   (condition :accessor promise-condition :initform nil :type (or null condition))
+   (thendlers :accessor promise-thendlers :initform nil :type (or null list))))
+
+(defmethod print-object ((promise promise) stream)
+  (print-unreadable-object (promise stream :type t :identity t)
+    (cond
+      ((fulfilledp promise)
+       (format stream "Ful: ~A" (promise-values promise)))
+      ((rejectedp promise)
+       (format stream "Rej: ~A" (promise-condition promise)))
+      (t (format stream "Un")))))
+
+(defun fulfilledp (promise)
+  (not (null (promise-values promise))))
+
+(defun rejectedp (promise)
+  (not (null (promise-condition promise))))
 
 (defun make-promise ()
   (make-instance 'promise))
 
-(defun promise-handled-p (promise)
-  (not (null (new-promise promise))))
+(defun then (promise fulfiller &optional rejecter)
+  (let ((thendler (make-instance 'thendler
+                                 :fulfiller fulfiller
+                                 :rejecter rejecter)))
+    (push thendler (promise-thendlers promise))
+    (cond
+      ((fulfilledp promise) (apply #'fulfill thendler (promise-values promise)))
+      ((rejectedp promise) (reject thendler (promise-condition promise))))
+    (thendler-promise thendler)))
 
-(defun then (promise fulfilled-handler &optional error-handler)
-  (assert (not (promise-handled-p promise)))
-  (assert (eql (state promise) :unfulfilled))
-  (let ((new-promise (make-promise)))
-    (setf (new-promise promise) new-promise
-          (fulfilled-handler promise) fulfilled-handler
-          (error-handler promise) error-handler)
-    new-promise))
+(defmethod fulfill ((promise promise) &rest values)
+  (setf (promise-values promise) values)
+  (dolist (thendler (promise-thendlers promise))
+    (apply #'fulfill thendler values)))
 
-(defun finish (promise state &rest values)
-  (assert (or (eql state :fulfilled) (eql state :rejected)))
-  (assert (eql :unfulfilled (state promise)))
-  (setf (state promise) state)
-  (with-slots (new-promise fulfilled-handler error-handler)
-      promise
-    (let ((handler (if (eql state :fulfilled) fulfilled-handler error-handler)))
-      (cond
-        ((and new-promise handler)
-         (handler-case
-             (destructuring-bind (val1 &rest other-values)
-                 (multiple-value-list (apply handler values))
-               (if (promisep val1)
-                   (then val1
-                         (lambda (&rest values)
-                           (apply #'fulfill new-promise values))
-                         (lambda (error)
-                           (funcall #'reject new-promise error)))
-                   (apply #'fulfill new-promise val1 other-values)))
-           (error (c) (reject new-promise c))))
-        (new-promise (apply #'finish new-promise state values))
-        ((eql state :rejected) (error (first values)))
-        ((eql state :fulfilled) nil)))))
-
-(defun fulfill (promise &rest values)
-  (apply #'finish promise :fulfilled values))
-
-(defun reject (promise error)
-  (funcall #'finish promise :rejected error))
+(defmethod reject ((promise promise) condition)
+  (let ((thendlers (promise-thendlers promise)))
+    (setf (promise-condition promise) condition)
+    (when (null thendlers)
+      (error condition))
+    (dolist (thendler (promise-thendlers promise))
+      (reject thendler condition))))
 
 (defmacro when-fulfilled (promise vars &body body)
   `(then ,promise (lambda ,vars
