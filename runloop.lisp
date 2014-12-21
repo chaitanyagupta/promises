@@ -23,6 +23,6 @@
 (defmethod remove-timer ((runloop runloop) timer)
   (iomux:remove-timer (event-base runloop) timer))
 
-(defun run-function (runloop timeout fn)
-  (add-timer runloop fn 0)
+(defun run-function (runloop timeout fn &rest values)
+  (add-timer runloop (lambda () (apply fn values)) 0)
   (run-until runloop timeout))

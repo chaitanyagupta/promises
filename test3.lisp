@@ -3,9 +3,9 @@
 
 (cl:in-package #:promises-test3)
 
-(defun run ()
+(defun run (user)
   (pcl:handler-case
-      (pcl:let* ((tweets (get-tweets-for "foo"))
+      (pcl:let* ((tweets (get-tweets-for user))
                  (short-urls (parse-tweets-for-urls tweets))
                  (expanded-url (expand-url-using-twitter-api (elt short-urls 0)))
                  (body (http-get expanded-url)))

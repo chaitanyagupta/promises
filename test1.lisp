@@ -30,8 +30,8 @@
                         (format nil "The URL is: ~A" url)))
              2))
 
-(defun run ()
-  (get-tweets-for "foo"
+(defun run (user)
+  (get-tweets-for user
                   (lambda (error tweets)
                     (declare (ignore error))
                     (let ((short-urls (parse-tweets-for-urls tweets)))

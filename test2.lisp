@@ -23,8 +23,8 @@
   (with-delay (2)
     (format nil "The URL is: ~A" url)))
 
-(defun run-1 ()
-  (then (then (then (get-tweets-for "barzz")
+(defun run-1 (user)
+  (then (then (then (get-tweets-for user)
                     (lambda (tweets)
                       (let ((short-urls (parse-tweets-for-urls tweets)))
                         (expand-url-using-twitter-api (elt short-urls 0)))))
@@ -34,8 +34,8 @@
         (lambda (error)
           (format t "Got an error: ~A~%" error))))
 
-(defun run-2 ()
-  (let* ((p1 (get-tweets-for "foo"))
+(defun run-2 (user)
+  (let* ((p1 (get-tweets-for user))
          (p2 (then p1
                    (lambda (tweets)
                      (let ((short-urls (parse-tweets-for-urls tweets)))
