@@ -29,20 +29,21 @@
                       (let ((short-urls (parse-tweets-for-urls tweets)))
                         (expand-url-using-twitter-api (elt short-urls 0)))))
               #'http-get)
-        (lambda (body)
-          (format t "Most recent link text: ~A~%" body))
+        (lambda (response-body)
+          (format t "Most recent link text: ~A~%" response-body))
         (lambda (error)
           (format t "Got an error: ~A~%" error))))
 
 (defun run-2 (user)
-  (let* ((p1 (get-tweets-for user))
-         (p2 (then p1
-                   (lambda (tweets)
-                     (let ((short-urls (parse-tweets-for-urls tweets)))
-                       (expand-url-using-twitter-api (elt short-urls 0))))))
-         (p3 (then p2 #'http-get)))
-    (then p3
-          (lambda (body)
-            (format t "Most recent link text: ~A~%" body))
+  (let* ((tweets-promise (get-tweets-for user))
+         (short-urls-promise (then tweets-promise (lambda (tweets)
+                                                    (parse-tweets-for-urls tweets))))
+         (expanded-url-promise (then short-urls-promise
+                                     (lambda (short-urls)
+                                       (expand-url-using-twitter-api (elt short-urls 0)))))
+         (response-body-promise (then expanded-url-promise #'http-get)))
+    (then response-body-promise
+          (lambda (response-body)
+            (format t "Most recent link text: ~A~%" response-body))
           (lambda (error)
             (format t "Got an error: ~A~%" error)))))

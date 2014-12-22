@@ -8,6 +8,6 @@
       (pcl:let* ((tweets (get-tweets-for user))
                  (short-urls (parse-tweets-for-urls tweets))
                  (expanded-url (expand-url-using-twitter-api (elt short-urls 0)))
-                 (body (http-get expanded-url)))
-        (format t "Most recent link text: ~A~%" body))
+                 (response-body (http-get expanded-url)))
+        (format t "Most recent link text: ~A~%" response-body))
     (error (c) (format t "Got error: ~A~%" c))))
