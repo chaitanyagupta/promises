@@ -5,7 +5,7 @@
          (result (first reversed)))
     (dolist (form (rest reversed) result)
       (setf result (let ((x (gensym "X-")))
-                     `(with-promised-values (&rest ,x)
+                     `(promise-values-bind (&rest ,x)
                           ,form
                         (declare (ignore ,x))
                         ,result))))))
@@ -49,7 +49,7 @@
   (let ((reversed-bindings (reverse bindings))
         (result (prognate-body nil body)))
     (dolist (binding reversed-bindings (first result))
-      (setf result `((with-promised-values (,(car binding))
+      (setf result `((promise-values-bind (,(car binding))
                         ,(cadr binding)
                       ,@result))))))
 

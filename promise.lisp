@@ -89,7 +89,7 @@
 (defun promisep (x)
   (typep x 'promise))
 
-(defmacro with-promised-values (var-list form &body body)
+(defmacro promise-values-bind (var-list form &body body)
   (let ((values (gensym "VALUES-")))
     `(multiple-value-call
          (lambda (&rest ,values)

@@ -19,7 +19,7 @@
    #:reject
    #:promise-values
    #:promise-condition
-   #:with-promised-values
+   #:promise-values-bind
    #:on-promises
    #:delayed-promise
    #:with-delay))
