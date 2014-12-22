@@ -80,3 +80,11 @@
                      (values-list ,values)))
              ,expression)
          ,@clauses))))
+
+(defun promisify (fn)
+  (lambda (&rest values)
+    (if (promisep (first values))
+        (then (first values) fn)
+        (apply fn values))))
+
+(setf (fdefinition 'pcl:print) (promisify #'print))
