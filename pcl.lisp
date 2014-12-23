@@ -1,14 +1,14 @@
 (cl:in-package #:pcl-impl)
 
 (defmacro pcl:progn (&body forms)
-  (let* ((reversed (reverse forms))
-         (result (first reversed)))
-    (dolist (form (rest reversed) result)
-      (setf result (let ((x (gensym "X-")))
-                     `(promise-values-bind (&rest ,x)
-                          ,form
-                        (declare (ignore ,x))
-                        ,result))))))
+  (cond ((null forms) nil)
+        ((null (rest forms))
+         (first forms))
+        (t (let ((x (gensym "X-")))
+             `(promise-values-bind (&rest ,x)
+                  ,(first forms)
+                (declare (ignore ,x))
+                (pcl:progn ,@(rest forms)))))))
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defun prognate-body (documentationp body)
