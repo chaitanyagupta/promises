@@ -46,6 +46,10 @@
            ,expression)
        ,@clauses)))
 
+(defun pcl:sleep (seconds)
+  (with-delay (seconds)
+    nil))
+
 (defun promisify (fn)
   (lambda (&rest values)
     (if (promisep (first values))

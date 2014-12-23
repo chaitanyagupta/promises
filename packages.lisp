@@ -29,6 +29,7 @@
            #:let
            #:let*
            #:handler-case
+           #:sleep
            #:print))
 
 (defpackage #:pcl-impl
