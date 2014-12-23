@@ -2,8 +2,7 @@
 
 (defmacro pcl:progn (&body forms)
   (cond ((null forms) nil)
-        ((null (rest forms))
-         (first forms))
+        ((null (rest forms)) (first forms))
         (t (let ((x (gensym "X-")))
              `(promise-values-bind (&rest ,x)
                   ,(first forms)
