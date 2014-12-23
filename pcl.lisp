@@ -10,55 +10,28 @@
                 (declare (ignore ,x))
                 (pcl:progn ,@(rest forms)))))))
 
-(eval-when (:compile-toplevel :load-toplevel :execute)
-  (defun prognate-body (documentationp body)
-    (let ((declarations nil)
-          (docstring nil)
-          (forms nil))
-      (loop
-         with state = :declarations
-         for expression in body
-         do (progn
-              (when (eql state :declarations)
-                (if (and (listp expression) (eql (first expression) 'declare))
-                    (push expression declarations)
-                    (setf state :docstring)))
-              (when (eql state :docstring)
-                (if (stringp expression)
-                    (setf docstring expression)
-                    (setf state :forms)))
-              (when (eql state :forms)
-                (push expression forms))))
-      (setf declarations (nreverse declarations)
-            forms (nreverse forms))
-      (append declarations
-              (if docstring
-                  (if documentationp
-                      (list docstring (cons 'pcl:progn forms))
-                      (list (cons 'pcl:progn (cons docstring forms))))
-                  (list (cons 'pcl:progn forms)))))))
-
 (defmacro pcl:let (bindings &body body)
   `(then (on-promises (list ,@(mapcar #'cadr bindings)))
          (lambda (values)
            (destructuring-bind ,(mapcar #'car bindings)
                values
-             ,@(prognate-body nil body)))))
+             ,@body))))
 
 (defmacro pcl:let* (bindings &body body)
-  (let ((reversed-bindings (reverse bindings))
-        (result (prognate-body nil body)))
-    (dolist (binding reversed-bindings (first result))
-      (setf result `((promise-values-bind (,(car binding))
-                        ,(cadr binding)
-                      ,@result))))))
+  (if (null bindings)
+      `(pcl:progn ,@body)
+      (let ((binding (first bindings)))
+        `(promise-values-bind (,(first binding))
+             ,(second binding)
+           (pcl:let* ,(rest bindings)
+             ,@body)))))
 
 (defmacro pcl:handler-case (expression &rest clauses)
   (let ((values (gensym "VALUES-"))
         (clauses (mapcar (lambda (clause)
                            (destructuring-bind (type (&rest vars) &body body)
                                clause
-                             (append (list type vars) (prognate-body nil body))))
+                             (list type vars (cons 'pcl:progn body))))
                          clauses)))
     `(flet ((handle-condition (c)
               (typecase c
